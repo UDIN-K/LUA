@@ -1,23 +1,23 @@
 // ==UserScript==
 // @name         Udink Mod - Diep.io Ultimate Cheat
 // @description  Ultimate Diep.io Mod by Udink - Aimbot, ESP, Auto Fire, Auto Spin, Zoom Hack & More!
-// @version      3.0.0
+// @version      3.1.0
 // @author       Udink
 // @license      MIT
 // @match        https://diep.io/*
 // @icon         https://www.google.com/s2/favicons?domain=diep.io
 // @run-at       document-start
 // @grant        none
-// @namespace    https://github.com/UDIN-K/
+// @namespace    https://github.com/UDIN-K/LUA
 // ==/UserScript==
 
 /*
  * ╔═══════════════════════════════════════════════════════════════╗
- * ║                      UDINK MOD v3.0.0                         ║
+ * ║                      UDINK MOD v3.1.0                         ║
  * ║               Ultimate Diep.io Cheat Suite                    ║
  * ╠═══════════════════════════════════════════════════════════════╣
  * ║  Developer  : Udink                                           ║
- * ║  Version    : 3.0.0                                           ║
+ * ║  Version    : 3.1.0                                           ║
  * ║  Released   : December 2024                                   ║
  * ╠═══════════════════════════════════════════════════════════════╣
  * ║  Features:                                                    ║
@@ -41,6 +41,8 @@
 //1.0.0 : Initial release
 //2.0.0 : Added menu system
 //3.0.0 : Added all features - Auto Fire, Auto Spin, Zoom, etc.
+//3.1.0 : Prioritas target ancaman terdekat, Zoom Hack diperbaiki, 
+//        Threat Indicator, Smooth Aim, Better Prediction, Drone/Crasher detection
 
 (() => {
   const _window = 'undefined' == typeof unsafeWindow ? window : unsafeWindow;
@@ -1781,8 +1783,7 @@
   //diepAPI end
 
   _window.diepAPI = diepAPI;
-  //menu and function thing
-  //AHHHHHHHHHHHHHH
+  
   (async () => {
         const sleep = ms => new Promise(r => setTimeout(r, ms));
         
@@ -1828,11 +1829,15 @@
         const CONFIG = {
             // Combat
             aimbot: true,
-            priority: 'smart',
-            fov: 300,
+            priority: 'survival', // 'survival', 'player', 'farm', 'distance'
+            fov: 500,
             predictionAim: true,
+            predictionStrength: 1.0,
             triggerbot: false,
             autoFire: false,
+            smoothAim: true,
+            smoothness: 0.3,
+            threatRadius: 400, // radius untuk deteksi ancaman
             
             // Visuals
             esp: true,
@@ -1845,6 +1850,7 @@
             customCrosshair: true,
             crosshairSize: 15,
             crosshairColor: '#00ff00',
+            showThreatIndicator: true,
             
             // Misc
             autoSpin: false,
@@ -1855,6 +1861,7 @@
             
             // Colors
             cEnemy: '#ff3b30',
+            cThreat: '#ff0000',
             cFarm: '#ffcc00',
             cPenta: '#007aff',
             cTrace: '#af52de',
@@ -1920,14 +1927,47 @@
         startAutoRespawn();
 
         // ==================== ZOOM HACK ====================
+        let originalFov = null;
         function applyZoom() {
-            if (_window.input && _window.input.set_convar) {
-                try {
-                    const zoomValue = CONFIG.zoomHack ? CONFIG.zoomLevel : 1;
-                    // Zoom works by adjusting FOV
-                } catch(e) {}
+            try {
+                if (!_window.input || !_window.input.set_convar) return;
+                
+                if (CONFIG.zoomHack) {
+                    // Zoom out by reducing FOV scale
+                    const zoomValue = CONFIG.zoomLevel;
+                    _window.input.set_convar('ren_zoom', String(zoomValue));
+                    
+                    // Alternative method - manipulate canvas scale
+                    const gameCanvas = document.getElementById('canvas');
+                    if (gameCanvas) {
+                        gameCanvas.style.transform = `scale(${1 + (1 - zoomValue) * 0.5})`;
+                        gameCanvas.style.transformOrigin = 'center center';
+                    }
+                } else {
+                    _window.input.set_convar('ren_zoom', '1');
+                    const gameCanvas = document.getElementById('canvas');
+                    if (gameCanvas) {
+                        gameCanvas.style.transform = 'scale(1)';
+                    }
+                }
+            } catch(e) {
+                console.log('[Udink Mod] Zoom error:', e);
             }
         }
+        
+        // Try alternative zoom using mouse wheel hook
+        let zoomMultiplier = 1;
+        document.addEventListener('wheel', (e) => {
+            if (CONFIG.zoomHack && e.ctrlKey) {
+                e.preventDefault();
+                if (e.deltaY < 0) {
+                    CONFIG.zoomLevel = Math.min(1, CONFIG.zoomLevel + 0.05);
+                } else {
+                    CONFIG.zoomLevel = Math.max(0.1, CONFIG.zoomLevel - 0.05);
+                }
+                applyZoom();
+            }
+        }, { passive: false });
 
         // ==================== FPS COUNTER ====================
         let fps = 0;
@@ -1942,8 +1982,10 @@
             @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&display=swap');
             :root { --glass-bg: rgba(20, 20, 25, 0.75); --glass-border: rgba(255, 255, 255, 0.1); --ios-green: #30D158; --text-sec: #EBEBF599; }
             #ios-gui * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; user-select: none; outline: none; }
-            #ios-toggle { position: fixed; top: 20px; left: 20px; width: 44px; height: 44px; background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 50%; cursor: pointer; z-index: 9999999; display: flex; align-items: center; justify-content: center; color: white; transition: 0.3s; box-shadow: 0 4px 24px rgba(0,0,0,0.3); }
+            #ios-toggle { position: fixed; top: 20px; left: 20px; width: 44px; height: 44px; background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 50%; cursor: grab; z-index: 9999999; display: flex; align-items: center; justify-content: center; color: white; transition: transform 0.2s, background 0.2s, box-shadow 0.2s; box-shadow: 0 4px 24px rgba(0,0,0,0.3); touch-action: none; }
             #ios-toggle:hover { transform: scale(1.1); background: rgba(255,255,255,0.1); }
+            #ios-toggle:active { cursor: grabbing; transform: scale(1.15); box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+            #ios-toggle.dragging { cursor: grabbing; transition: none; transform: scale(1.15); box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
 
             #ios-menu { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95); width: 750px; height: 500px; background: var(--glass-bg); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%); border: 1px solid var(--glass-border); border-radius: 24px; box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6); display: none; opacity: 0; transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1); overflow: hidden; z-index: 9999998; }
 
@@ -2006,7 +2048,7 @@
                         <div class="row"><span class="label">Prediction Aim</span><div class="ios-switch" id="chk-predictionAim"></div></div>
                         <div class="row"><span class="label">Triggerbot</span><div class="ios-switch" id="chk-triggerbot"></div></div>
                         <div class="row"><span class="label">Auto Fire</span><div class="ios-switch" id="chk-autoFire"></div></div>
-                        <div class="row"><span class="label">Priority</span><select id="sel-priority"><option value="smart">Smart</option><option value="player">Player</option><option value="distance">Distance</option></select></div>
+                        <div class="row"><span class="label">Priority</span><select id="sel-priority"><option value="survival">Survival (Prioritas Ancaman)</option><option value="player">Player Only</option><option value="farm">Farm Only</option><option value="distance">Terdekat</option></select></div>
                         <div class="row"><span class="label">FOV Radius</span><input type="range" id="rng-fov" min="100" max="2000"></div>
                     </div>
                 </div>
@@ -2020,6 +2062,7 @@
                         <div class="row"><span class="label">FPS Counter</span><div class="ios-switch" id="chk-showFps"></div></div>
                         <div class="row"><span class="label">Coordinates</span><div class="ios-switch" id="chk-showCoords"></div></div>
                         <div class="row"><span class="label">Custom Crosshair</span><div class="ios-switch" id="chk-customCrosshair"></div></div>
+                        <div class="row"><span class="label">Threat Indicator</span><div class="ios-switch" id="chk-showThreatIndicator"></div></div>
                         <div class="row"><span class="label">Line Width</span><input type="range" id="rng-lineWidth" min="1" max="6"></div>
                     </div>
                 </div>
@@ -2031,6 +2074,8 @@
                         <div class="row"><span class="label">Auto Respawn</span><div class="ios-switch" id="chk-autoRespawn"></div></div>
                         <div class="row"><span class="label">Zoom Hack</span><div class="ios-switch" id="chk-zoomHack"></div></div>
                         <div class="row"><span class="label">Zoom Level</span><input type="range" id="rng-zoomLevel" min="0.1" max="1" step="0.1"></div>
+                        <div class="row"><span class="label">Threat Radius</span><input type="range" id="rng-threatRadius" min="100" max="800"></div>
+                        <div class="row"><span class="label">Prediction Strength</span><input type="range" id="rng-predictionStrength" min="0.1" max="2" step="0.1"></div>
                     </div>
                 </div>
                 <div id="tab-colors" class="tab-page">
@@ -2058,7 +2103,7 @@
                     <div class="header">ℹ️ Info</div>
                     <div class="card">
                         <div class="row"><span class="label">Mod Name</span><span style="color:#0A84FF">Udink Mod</span></div>
-                        <div class="row"><span class="label">Version</span><span style="color:#30D158">3.0.0</span></div>
+                        <div class="row"><span class="label">Version</span><span style="color:#30D158">3.1.0</span></div>
                         <div class="row"><span class="label">Developer</span><span style="color:#FF9500">Udink</span></div>
                         <div class="row"><span class="label">Status</span><span style="color:#30D158">✓ Active</span></div>
                     </div>
@@ -2078,6 +2123,90 @@
         const menuEl = document.getElementById('ios-menu');
         const glider = document.getElementById('nav-glider');
 
+        // ==================== DRAGGABLE TOGGLE BUTTON ====================
+        let isDragging = false;
+        let dragStartX, dragStartY;
+        let btnStartX, btnStartY;
+        let hasMoved = false;
+        
+        // Load saved position from localStorage
+        const savedPos = localStorage.getItem('udinkTogglePos');
+        if (savedPos) {
+            try {
+                const pos = JSON.parse(savedPos);
+                toggleBtn.style.left = pos.x + 'px';
+                toggleBtn.style.top = pos.y + 'px';
+            } catch(e) {}
+        }
+        
+        function onDragStart(e) {
+            isDragging = true;
+            hasMoved = false;
+            toggleBtn.classList.add('dragging');
+            
+            const touch = e.touches ? e.touches[0] : e;
+            dragStartX = touch.clientX;
+            dragStartY = touch.clientY;
+            btnStartX = toggleBtn.offsetLeft;
+            btnStartY = toggleBtn.offsetTop;
+            
+            e.preventDefault();
+        }
+        
+        function onDragMove(e) {
+            if (!isDragging) return;
+            
+            const touch = e.touches ? e.touches[0] : e;
+            const deltaX = touch.clientX - dragStartX;
+            const deltaY = touch.clientY - dragStartY;
+            
+            // Check if actually moved (more than 5px)
+            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+                hasMoved = true;
+            }
+            
+            let newX = btnStartX + deltaX;
+            let newY = btnStartY + deltaY;
+            
+            // Keep within screen bounds
+            const btnSize = 44;
+            newX = Math.max(0, Math.min(window.innerWidth - btnSize, newX));
+            newY = Math.max(0, Math.min(window.innerHeight - btnSize, newY));
+            
+            toggleBtn.style.left = newX + 'px';
+            toggleBtn.style.top = newY + 'px';
+            
+            e.preventDefault();
+        }
+        
+        function onDragEnd(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            toggleBtn.classList.remove('dragging');
+            
+            // Save position to localStorage
+            const pos = {
+                x: toggleBtn.offsetLeft,
+                y: toggleBtn.offsetTop
+            };
+            localStorage.setItem('udinkTogglePos', JSON.stringify(pos));
+            
+            // If not moved much, treat as click
+            if (!hasMoved) {
+                toggleMenu();
+            }
+        }
+        
+        // Mouse events
+        toggleBtn.addEventListener('mousedown', onDragStart);
+        document.addEventListener('mousemove', onDragMove);
+        document.addEventListener('mouseup', onDragEnd);
+        
+        // Touch events for mobile
+        toggleBtn.addEventListener('touchstart', onDragStart, { passive: false });
+        document.addEventListener('touchmove', onDragMove, { passive: false });
+        document.addEventListener('touchend', onDragEnd);
+
         function toggleMenu() {
             isOpen = !isOpen;
             if (isOpen) {
@@ -2090,7 +2219,6 @@
                 setTimeout(() => menuEl.style.display = 'none', 400);
             }
         }
-        toggleBtn.addEventListener('click', toggleMenu);
 
         function moveGlider(targetBtn) {
             if (!targetBtn) return;
@@ -2147,6 +2275,7 @@
         bindCheck('chk-showFps', 'showFps');
         bindCheck('chk-showCoords', 'showCoords');
         bindCheck('chk-customCrosshair', 'customCrosshair');
+        bindCheck('chk-showThreatIndicator', 'showThreatIndicator');
         bindCheck('chk-autoSpin', 'autoSpin');
         bindCheck('chk-autoRespawn', 'autoRespawn');
         bindCheck('chk-zoomHack', 'zoomHack');
@@ -2156,6 +2285,8 @@
         bindVal('rng-lineWidth', 'lineWidth');
         bindVal('rng-spinSpeed', 'spinSpeed');
         bindVal('rng-zoomLevel', 'zoomLevel');
+        bindVal('rng-threatRadius', 'threatRadius');
+        bindVal('rng-predictionStrength', 'predictionStrength');
         bindVal('col-cEnemy', 'cEnemy');
         bindVal('col-cFarm', 'cFarm');
         bindVal('col-cPenta', 'cPenta');
@@ -2268,9 +2399,20 @@
                 const color = e.extras.color || '';
                 const isTeamColor = ['#00b2e1', '#f14e54', '#bf7ff5', '#00e16e'].includes(color);
                 const isEnemy = (e.type === 0 && isTeamColor);
+                const isDrone = (e.type === 2); // Drone juga berbahaya
                 const isPentagon = (e.type === 6 || e.type === 7);
                 const isSquare = (e.type === 4);
                 const isTriangle = (e.type === 5);
+                const isCrasher = (e.type === 8);
+                
+                // Hitung jarak arena (bukan canvas) untuk akurasi
+                const arenaDistX = e.position.x - (player?.position?.x || 0);
+                const arenaDistY = e.position.y - (player?.position?.y || 0);
+                const arenaDist = Math.hypot(arenaDistX, arenaDistY);
+                
+                // THREAT DETECTION - deteksi ancaman mendekat
+                const threatRadius = Number(CONFIG.threatRadius) || 400;
+                const isThreat = (isEnemy || isDrone || isCrasher) && arenaDist < threatRadius;
 
                 // Draw ESP
                 if (CONFIG.esp) {
@@ -2278,7 +2420,10 @@
                     let col = CONFIG.cFarm;
                     let lw = Number(CONFIG.lineWidth) || 2;
                     
-                    if (isEnemy) { 
+                    if (isThreat) {
+                        col = CONFIG.cThreat || '#ff0000';
+                        lw += 3;
+                    } else if (isEnemy || isDrone) { 
                         col = CONFIG.cEnemy; 
                         lw += 2; 
                     } else if (isPentagon) {
@@ -2291,49 +2436,98 @@
                     ctx.lineWidth = lw;
                     ctx.arc(pos.x, pos.y, Math.max(drawRadius, 10), 0, Math.PI * 2);
                     ctx.stroke();
+                    
+                    // Threat indicator - gambar warning
+                    if (isThreat && CONFIG.showThreatIndicator) {
+                        ctx.save();
+                        ctx.fillStyle = '#ff0000';
+                        ctx.font = `bold ${20 * dpr}px Arial`;
+                        ctx.textAlign = 'center';
+                        ctx.fillText('⚠️', pos.x, pos.y - drawRadius - 10);
+                        ctx.restore();
+                    }
 
                     // Draw lines to enemies/pentagons
-                    if (CONFIG.espLines && (isEnemy || isPentagon)) {
+                    if (CONFIG.espLines && (isEnemy || isPentagon || isThreat)) {
                         ctx.beginPath();
                         ctx.moveTo(cx, cy);
                         ctx.lineTo(pos.x, pos.y);
-                        ctx.strokeStyle = col;
-                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = isThreat ? '#ff0000' : col;
+                        ctx.lineWidth = isThreat ? 2 : 1;
                         ctx.stroke();
                     }
                 }
 
-                // Aimbot target selection
+                // Aimbot target selection - SURVIVAL PRIORITY SYSTEM
                 const fovRadius = CONFIG.fov * scaling.scalingFactor;
                 if (dist > fovRadius) continue;
                 
-                let score = dist;
-                if (CONFIG.priority === 'player' && !isEnemy) continue;
-                if (CONFIG.priority === 'smart') {
-                    if (isEnemy) score -= 50000;
-                    else if (isPentagon) score -= 10000;
+                let score = dist; // Base score = distance
+                
+                // SURVIVAL MODE - Prioritaskan ancaman terdekat!
+                if (CONFIG.priority === 'survival') {
+                    if (isThreat) {
+                        // ANCAMAN! Prioritas tertinggi - semakin dekat semakin prioritas
+                        score = arenaDist - 100000; // Nilai sangat rendah = prioritas tinggi
+                    } else if (isEnemy || isDrone) {
+                        score = arenaDist - 50000;
+                    } else if (isCrasher) {
+                        score = arenaDist - 30000;
+                    } else if (isPentagon) {
+                        score = arenaDist + 10000; // Pentagon prioritas rendah di survival mode
+                    } else {
+                        continue; // Skip farm shapes di survival mode
+                    }
+                } else if (CONFIG.priority === 'player') {
+                    if (!isEnemy && !isDrone) continue;
+                    score = arenaDist;
+                } else if (CONFIG.priority === 'farm') {
+                    if (isEnemy || isDrone || isCrasher) continue;
+                    if (isPentagon) score -= 5000;
+                    else if (isTriangle) score -= 2000;
+                } else {
+                    // Distance mode
+                    score = dist;
                 }
+                
                 if (score < minScore) { 
                     minScore = score; 
-                    best = e; 
+                    best = e;
                 }
+            }
+            
+            // Draw threat radius circle
+            if (CONFIG.showThreatIndicator && CONFIG.priority === 'survival') {
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.2)';
+                ctx.lineWidth = 2;
+                const threatCanvasRadius = CONFIG.threatRadius * scaling.scalingFactor;
+                ctx.arc(cx, cy, threatCanvasRadius, 0, Math.PI * 2);
+                ctx.stroke();
             }
 
             // Log entity count setiap 60 frame (sekitar 1 detik)
             if (frameCount % 60 === 0) {
-                console.log('[Udink Mod] Entities:', entities.length, 'Best target:', best ? best.type : 'none');
+                console.log('[Udink Mod] Entities:', entities.length, 'Best target:', best ? `Type:${best.type}` : 'none');
             }
 
-            // Aimbot - aim at best target
+            // Aimbot - aim at best target with SMOOTH AIM
             if (CONFIG.aimbot && best && !CONFIG.autoSpin) {
                 let targetPos = best.position;
                 
                 // Prediction Aim - predict where enemy will be
                 if (CONFIG.predictionAim && best.velocity) {
-                    const bulletSpeed = 1000; // approximate bullet speed
-                    const dist = Math.hypot(best.position.x - (player?.position?.x || 0), best.position.y - (player?.position?.y || 0));
-                    const timeToHit = dist / bulletSpeed * 50; // prediction time in ms
-                    targetPos = best.predictPos ? best.predictPos(timeToHit) : best.position;
+                    const bulletSpeed = 800; // approximate bullet speed in arena units
+                    const predStrength = Number(CONFIG.predictionStrength) || 1.0;
+                    const distToTarget = Math.hypot(
+                        best.position.x - (player?.position?.x || 0), 
+                        best.position.y - (player?.position?.y || 0)
+                    );
+                    const timeToHit = (distToTarget / bulletSpeed) * 1000 * predStrength; // prediction time in ms
+                    
+                    if (best.predictPos) {
+                        targetPos = best.predictPos(timeToHit);
+                    }
                 }
                 
                 const t = scaling.toCanvasPos(targetPos);
@@ -2342,44 +2536,72 @@
                 const screenCenter = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
                 const angle = Math.atan2(screenPos.y - screenCenter.y, screenPos.x - screenCenter.x);
                 
-                // Gerakkan mouse ke arah target
-                const aimX = screenCenter.x + Math.cos(angle) * 300;
-                const aimY = screenCenter.y + Math.sin(angle) * 300;
+                // SMOOTH AIM - tidak langsung snap ke target
+                let aimDistance = 300;
+                if (CONFIG.smoothAim) {
+                    const smoothness = Number(CONFIG.smoothness) || 0.3;
+                    aimDistance = 100 + Math.random() * 200 * smoothness;
+                }
+                
+                const aimX = screenCenter.x + Math.cos(angle) * aimDistance;
+                const aimY = screenCenter.y + Math.sin(angle) * aimDistance;
                 input.mouse(aimX, aimY);
                 
                 // Triggerbot - auto shoot when aiming at enemy
                 if (CONFIG.triggerbot) {
-                    const distToTarget = Math.hypot(screenPos.x - screenCenter.x, screenPos.y - screenCenter.y);
-                    if (distToTarget < 100) {
-                        input.mouseDown(0);
-                        setTimeout(() => input.mouseUp(0), 50);
+                    const color = best.extras?.color || '';
+                    const isTeamColor = ['#00b2e1', '#f14e54', '#bf7ff5', '#00e16e'].includes(color);
+                    const isHostile = (best.type === 0 && isTeamColor) || best.type === 2 || best.type === 8;
+                    
+                    if (isHostile) {
+                        const distToTarget = Math.hypot(screenPos.x - screenCenter.x, screenPos.y - screenCenter.y);
+                        if (distToTarget < 150) {
+                            input.mouseDown(0);
+                            setTimeout(() => input.mouseUp(0), 50);
+                        }
                     }
                 }
                 
                 // Draw aim tracer
                 if (CONFIG.aimTracer) {
+                    const color = best.extras?.color || '';
+                    const isTeamColor = ['#00b2e1', '#f14e54', '#bf7ff5', '#00e16e'].includes(color);
+                    const isThreatTarget = (best.type === 0 && isTeamColor) || best.type === 2 || best.type === 8;
+                    
                     ctx.beginPath();
                     ctx.moveTo(cx, cy);
                     ctx.lineTo(t.x, t.y);
-                    ctx.strokeStyle = CONFIG.cTrace;
-                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = isThreatTarget ? '#ff0000' : CONFIG.cTrace;
+                    ctx.lineWidth = isThreatTarget ? 4 : 3;
                     ctx.stroke();
                     
                     // Draw prediction point if enabled
                     if (CONFIG.predictionAim) {
                         ctx.beginPath();
-                        ctx.arc(t.x, t.y, 8, 0, Math.PI * 2);
-                        ctx.fillStyle = '#ff0000';
+                        ctx.arc(t.x, t.y, 10, 0, Math.PI * 2);
+                        ctx.fillStyle = isThreatTarget ? '#ff0000' : '#00ff00';
                         ctx.fill();
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
                     }
+                    
+                    // Target info
+                    ctx.save();
+                    ctx.font = `${12 * dpr}px Arial`;
+                    ctx.fillStyle = '#ffffff';
+                    const typeNames = ['Player', 'Bullet', 'Drone', 'Trap', 'Square', 'Triangle', 'Pentagon', 'Alpha', 'Crasher', 'Unknown'];
+                    ctx.fillText(typeNames[best.type] || 'Unknown', t.x + 15, t.y - 15);
+                    ctx.restore();
                 }
             }
         });
         
         console.log('[Udink Mod] Script fully loaded! 🎮');
         console.log('╔═══════════════════════════════════════╗');
-        console.log('║       UDINK MOD v3.0.0 LOADED!        ║');
+        console.log('║       UDINK MOD v3.1.0 LOADED!        ║');
         console.log('║    Press V to open the menu           ║');
+        console.log('║    Survival Mode: Prioritize threats! ║');
         console.log('║    © 2024 Udink - All Rights Reserved ║');
         console.log('╚═══════════════════════════════════════╝');
     })();
