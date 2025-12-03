@@ -3,6 +3,7 @@
 // @description  Ultimate Diep.io Mod by Udink - Aimbot, ESP, Auto Fire, Auto Spin, Zoom Hack & More!
 // @version      3.0.0
 // @author       Udink
+// @license      MIT
 // @match        https://diep.io/*
 // @icon         https://www.google.com/s2/favicons?domain=diep.io
 // @run-at       document-start
