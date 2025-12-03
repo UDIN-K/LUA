@@ -1,17 +1,17 @@
-  // ==UserScript==
-  // @name         Udink Mod - Diep.io Ultimate Cheat
-  // @description  Ultimate Diep.io Mod by Udink - Aimbot, ESP, Auto Fire, Auto Spin, Zoom Hack & More!
-  // @version      3.1.0
-  // @author       Udink
-  // @license      MIT
-  // @match        https://diep.io/*
-  // @icon         https://www.google.com/s2/favicons?domain=diep.io
-  // @run-at       document-start
-  // @grant        none
-  // @namespace    https://github.com/UDIN-K/LUA
-  // ==/UserScript==
+// ==UserScript==
+// @name         Udink Mod - Diep.io Ultimate Cheat
+// @description  Ultimate Diep.io Mod by Udink - Aimbot, ESP, Auto Fire, Auto Spin, Zoom Hack & More!
+// @version      3.1.0
+// @author       Udink
+// @license      MIT
+// @match        https://diep.io/*
+// @icon         https://www.google.com/s2/favicons?domain=diep.io
+// @run-at       document-start
+// @grant        none
+// @namespace    https://greasyfork.org/users/udink
+// ==/UserScript==
 
-  /*
+/*
   * ╔═══════════════════════════════════════════════════════════════╗
   * ║                      UDINK MOD v3.1.0                         ║
   * ║               Ultimate Diep.io Cheat Suite                    ║
