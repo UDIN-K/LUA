@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Udink Mod - Diep.io Ultimate Cheat
 // @description  Ultimate Diep.io Mod by Udink - Aimbot, ESP, Auto Fire, Auto Spin, Zoom Hack & More!
-// @version      3.3.1
+// @version      3.3.4
 // @author       Udink
 // @license      MIT
 // @match        https://diep.io/*
@@ -46,6 +46,7 @@
 //3.2.0 : Anti-anti-cheat bypass integrated
 //3.3.0 : Build Upgrader integrated - Save custom builds, quick spawn with stats
 //3.3.1 : UI Polish - Modern glassmorphism design, better animations, improved UX
+//3.3.4 : Bug fixes and performance improvements
 
 // ==================== ANTI-ANTI-CHEAT BYPASS ====================
 // This must run FIRST before anything else to disable Diep.io's anti-cheat
@@ -1998,26 +1999,39 @@ Object.freeze = new Proxy(Object.freeze, {
 
           // ==================== ZOOM HACK ====================
           let originalFov = null;
+          let zoomInterval = null;
+          
           function applyZoom() {
               try {
-                  if (!_window.input || !_window.input.set_convar) return;
+                  // Clear any existing zoom interval
+                  if (zoomInterval) {
+                      clearInterval(zoomInterval);
+                      zoomInterval = null;
+                  }
                   
                   if (CONFIG.zoomHack) {
-                      // Zoom out by reducing FOV scale
-                      const zoomValue = CONFIG.zoomLevel;
-                      _window.input.set_convar('ren_zoom', String(zoomValue));
+                      // Method 1: Use ren_raw_camera_fov (most reliable for zoom out)
+                      // Lower value = more zoom out, higher value = more zoom in
+                      const fovValue = CONFIG.zoomLevel; // 0.1 (zoomed out) to 1.0 (normal)
                       
-                      // Alternative method - manipulate canvas scale
-                      const gameCanvas = document.getElementById('canvas');
-                      if (gameCanvas) {
-                          gameCanvas.style.transform = `scale(${1 + (1 - zoomValue) * 0.5})`;
-                          gameCanvas.style.transformOrigin = 'center center';
+                      // Apply zoom continuously because game may reset it
+                      zoomInterval = setInterval(() => {
+                          try {
+                              if (_window.input && _window.input.set_convar) {
+                                  // ren_raw_camera_fov controls the actual FOV
+                                  _window.input.set_convar('ren_raw_camera_fov', String(fovValue));
+                              }
+                          } catch(e) {}
+                      }, 100);
+                      
+                      // Apply immediately too
+                      if (_window.input && _window.input.set_convar) {
+                          _window.input.set_convar('ren_raw_camera_fov', String(fovValue));
                       }
                   } else {
-                      _window.input.set_convar('ren_zoom', '1');
-                      const gameCanvas = document.getElementById('canvas');
-                      if (gameCanvas) {
-                          gameCanvas.style.transform = 'scale(1)';
+                      // Reset to normal FOV
+                      if (_window.input && _window.input.set_convar) {
+                          _window.input.set_convar('ren_raw_camera_fov', '1');
                       }
                   }
               } catch(e) {
@@ -2025,8 +2039,7 @@ Object.freeze = new Proxy(Object.freeze, {
               }
           }
           
-          // Try alternative zoom using mouse wheel hook
-          let zoomMultiplier = 1;
+          // Zoom with mouse wheel (Ctrl + Scroll)
           document.addEventListener('wheel', (e) => {
               if (CONFIG.zoomHack && e.ctrlKey) {
                   e.preventDefault();
@@ -2035,6 +2048,9 @@ Object.freeze = new Proxy(Object.freeze, {
                   } else {
                       CONFIG.zoomLevel = Math.max(0.1, CONFIG.zoomLevel - 0.05);
                   }
+                  // Update slider UI
+                  const slider = document.getElementById('rng-zoomLevel');
+                  if (slider) slider.value = CONFIG.zoomLevel;
                   applyZoom();
               }
           }, { passive: false });
@@ -2833,17 +2849,26 @@ Object.freeze = new Proxy(Object.freeze, {
           });
           setTimeout(() => moveGlider(gui.querySelector('.nav-item.active')), 100);
 
-          function bindCheck(id, key) {
+          function bindCheck(id, key, onChange) {
               const el = document.getElementById(id);
               const update = () => el.className = 'ios-switch ' + (CONFIG[key] ? 'active' : '');
               update();
-              el.addEventListener('click', () => { CONFIG[key] = !CONFIG[key]; update(); });
+              el.addEventListener('click', () => { 
+                  CONFIG[key] = !CONFIG[key]; 
+                  update(); 
+                  if (onChange) onChange(CONFIG[key]);
+              });
               el.updateVisual = update;
           }
           function bindVal(id, key) {
               const el = document.getElementById(id);
               el.value = CONFIG[key];
-              el.addEventListener('input', () => CONFIG[key] = el.value);
+              el.addEventListener('input', () => {
+                  const isNumber = el.type === 'range' || el.type === 'number';
+                  CONFIG[key] = isNumber ? parseFloat(el.value) : el.value;
+                  // Apply zoom immediately when zoom level changes
+                  if (key === 'zoomLevel') applyZoom();
+              });
           }
           function setupKeybind(id, configKey) {
               const btn = document.getElementById(id);
@@ -2875,7 +2900,7 @@ Object.freeze = new Proxy(Object.freeze, {
           bindCheck('chk-showThreatIndicator', 'showThreatIndicator');
           bindCheck('chk-autoSpin', 'autoSpin');
           bindCheck('chk-autoRespawn', 'autoRespawn');
-          bindCheck('chk-zoomHack', 'zoomHack');
+          bindCheck('chk-zoomHack', 'zoomHack', () => applyZoom());
           
           bindVal('sel-priority', 'priority');
           bindVal('rng-fov', 'fov');
@@ -3139,6 +3164,10 @@ Object.freeze = new Proxy(Object.freeze, {
 
               let best = null;
               let minScore = Infinity;
+              
+              // Get player's own entity and color for comparison
+              const myEntity = entityManager.getPlayer();
+              const myColor = myEntity?.extras?.color || null;
 
               const entities = entityManager.entities;
               for (let i = 0; i < entities.length; i++) {
@@ -3153,18 +3182,34 @@ Object.freeze = new Proxy(Object.freeze, {
                   const pos = scaling.toCanvasPos(e.position);
                   const dist = Math.hypot(pos.x - cx, pos.y - cy);
                   
-                  // Skip jika terlalu dekat (kemungkinan player sendiri)
+                  // Skip player sendiri - check by distance to playerMovement position
+                  const distToPlayer = Vector.distance(e.position, playerMovement.position);
+                  if (distToPlayer < 30) continue; // This is likely ourselves
+                  
+                  // Skip jika terlalu dekat di canvas (backup check)
                   if (dist < 50) continue;
 
                   // Deteksi enemy berdasarkan type dan warna
                   const color = e.extras.color || '';
-                  const isTeamColor = ['#00b2e1', '#f14e54', '#bf7ff5', '#00e16e'].includes(color);
-                  const isEnemy = (e.type === 0 && isTeamColor);
-                  const isDrone = (e.type === 2); // Drone juga berbahaya
+                  const teamColors = ['#00b2e1', '#f14e54', '#bf7ff5', '#00e16e'];
+                  const isTeamColor = teamColors.includes(color);
+                  
+                  // Dalam team mode, musuh punya warna BERBEDA dari kita
+                  // Dalam FFA, semua player dengan team color adalah musuh
+                  const isSameTeam = myColor && color === myColor;
+                  const isEnemyPlayer = (e.type === 0 && isTeamColor && !isSameTeam);
+                  
+                  // Drone detection - drone musuh punya warna berbeda dari kita
+                  const isEnemyDrone = (e.type === 2 && isTeamColor && !isSameTeam);
+                  
                   const isPentagon = (e.type === 6 || e.type === 7);
                   const isSquare = (e.type === 4);
                   const isTriangle = (e.type === 5);
                   const isCrasher = (e.type === 8);
+                  
+                  // Combined enemy check
+                  const isEnemy = isEnemyPlayer;
+                  const isDrone = isEnemyDrone;
                   
                   // Hitung jarak arena (bukan canvas) untuk akurasi
                   const arenaDistX = e.position.x - (player?.position?.x || 0);
@@ -3175,28 +3220,54 @@ Object.freeze = new Proxy(Object.freeze, {
                   const threatRadius = Number(CONFIG.threatRadius) || 400;
                   const isThreat = (isEnemy || isDrone || isCrasher) && arenaDist < threatRadius;
 
-                  // Draw ESP
+                  // Draw ESP - PRIORITAS KE PLAYER/ENEMY
                   if (CONFIG.esp) {
                       const drawRadius = r * scaling.scalingFactor;
                       let col = CONFIG.cFarm;
                       let lw = Number(CONFIG.lineWidth) || 2;
+                      let shouldDrawESP = false;
+                      let shouldDrawLine = false;
                       
+                      // Prioritas: Enemy Player > Enemy Drone > Crasher > Pentagon > Farm
                       if (isThreat) {
                           col = CONFIG.cThreat || '#ff0000';
                           lw += 3;
-                      } else if (isEnemy || isDrone) { 
+                          shouldDrawESP = true;
+                          shouldDrawLine = true;
+                      } else if (isEnemy) {
+                          // ENEMY PLAYER - selalu tampilkan!
                           col = CONFIG.cEnemy; 
                           lw += 2; 
+                          shouldDrawESP = true;
+                          shouldDrawLine = true;
+                      } else if (isDrone) {
+                          // Enemy drone
+                          col = CONFIG.cEnemy; 
+                          lw += 1; 
+                          shouldDrawESP = true;
+                          shouldDrawLine = CONFIG.espLines;
+                      } else if (isCrasher) {
+                          col = '#f177dd';
+                          shouldDrawESP = true;
                       } else if (isPentagon) {
                           col = CONFIG.cPenta;
+                          shouldDrawESP = true;
+                          // Line ke pentagon hanya jika priority = farm
+                          shouldDrawLine = CONFIG.espLines && CONFIG.priority === 'farm';
+                      } else if (isSquare || isTriangle) {
+                          // Farm shapes - tampilkan ESP tapi lebih subtle
+                          col = CONFIG.cFarm;
+                          shouldDrawESP = true;
                       }
 
-                      // Draw circle around entity
-                      ctx.beginPath();
-                      ctx.strokeStyle = col;
-                      ctx.lineWidth = lw;
-                      ctx.arc(pos.x, pos.y, Math.max(drawRadius, 10), 0, Math.PI * 2);
-                      ctx.stroke();
+                      // Draw circle/box around entity
+                      if (shouldDrawESP) {
+                          ctx.beginPath();
+                          ctx.strokeStyle = col;
+                          ctx.lineWidth = lw;
+                          ctx.arc(pos.x, pos.y, Math.max(drawRadius, 10), 0, Math.PI * 2);
+                          ctx.stroke();
+                      }
                       
                       // Threat indicator - gambar warning
                       if (isThreat && CONFIG.showThreatIndicator) {
@@ -3208,8 +3279,8 @@ Object.freeze = new Proxy(Object.freeze, {
                           ctx.restore();
                       }
 
-                      // Draw lines to enemies/pentagons
-                      if (CONFIG.espLines && (isEnemy || isPentagon || isThreat)) {
+                      // Draw lines - HANYA KE ENEMY PLAYER/DRONE/THREAT
+                      if (CONFIG.espLines && shouldDrawLine) {
                           ctx.beginPath();
                           ctx.moveTo(cx, cy);
                           ctx.lineTo(pos.x, pos.y);
@@ -3269,7 +3340,11 @@ Object.freeze = new Proxy(Object.freeze, {
 
               // Log entity count setiap 60 frame (sekitar 1 detik)
               if (frameCount % 60 === 0) {
-                  console.log('[Udink Mod] Entities:', entities.length, 'Best target:', best ? `Type:${best.type}` : 'none');
+                  const playerCount = entities.filter(e => e.type === 0).length;
+                  console.log('[Udink Mod] Entities:', entities.length, 
+                      '| Players:', playerCount,
+                      '| MyColor:', myColor || 'unknown',
+                      '| Target:', best ? `Type:${best.type} Color:${best.extras?.color}` : 'none');
               }
 
               // Aimbot - aim at best target with SMOOTH AIM
@@ -3310,9 +3385,14 @@ Object.freeze = new Proxy(Object.freeze, {
                   
                   // Triggerbot - auto shoot when aiming at enemy
                   if (CONFIG.triggerbot) {
-                      const color = best.extras?.color || '';
-                      const isTeamColor = ['#00b2e1', '#f14e54', '#bf7ff5', '#00e16e'].includes(color);
-                      const isHostile = (best.type === 0 && isTeamColor) || best.type === 2 || best.type === 8;
+                      const bestColor = best.extras?.color || '';
+                      const teamColors = ['#00b2e1', '#f14e54', '#bf7ff5', '#00e16e'];
+                      const bestIsTeamColor = teamColors.includes(bestColor);
+                      const bestIsSameTeam = myColor && bestColor === myColor;
+                      // Hostile = enemy player, enemy drone, or crasher
+                      const isHostile = (best.type === 0 && bestIsTeamColor && !bestIsSameTeam) || 
+                                       (best.type === 2 && bestIsTeamColor && !bestIsSameTeam) || 
+                                       best.type === 8;
                       
                       if (isHostile) {
                           const distToTarget = Math.hypot(screenPos.x - screenCenter.x, screenPos.y - screenCenter.y);
@@ -3325,9 +3405,14 @@ Object.freeze = new Proxy(Object.freeze, {
                   
                   // Draw aim tracer
                   if (CONFIG.aimTracer) {
-                      const color = best.extras?.color || '';
-                      const isTeamColor = ['#00b2e1', '#f14e54', '#bf7ff5', '#00e16e'].includes(color);
-                      const isThreatTarget = (best.type === 0 && isTeamColor) || best.type === 2 || best.type === 8;
+                      const bestColor = best.extras?.color || '';
+                      const teamColors = ['#00b2e1', '#f14e54', '#bf7ff5', '#00e16e'];
+                      const bestIsTeamColor = teamColors.includes(bestColor);
+                      const bestIsSameTeam = myColor && bestColor === myColor;
+                      // Threat target = enemy player, enemy drone, or crasher
+                      const isThreatTarget = (best.type === 0 && bestIsTeamColor && !bestIsSameTeam) || 
+                                            (best.type === 2 && bestIsTeamColor && !bestIsSameTeam) || 
+                                            best.type === 8;
                       
                       ctx.beginPath();
                       ctx.moveTo(cx, cy);
@@ -3362,7 +3447,7 @@ Object.freeze = new Proxy(Object.freeze, {
           console.log('╔═══════════════════════════════════════╗');
           console.log('║       UDINK MOD v3.3.1 LOADED!        ║');
           console.log('║    Press V to open the menu           ║');
-          console.log('║    Threat Mode: Prioritize enemies!  ║');
+          console.log('║    Threat Mode: Prioritize enemies!   ║');
           console.log('║    © 2025 Udink - All Rights Reserved ║');
           console.log('╚═══════════════════════════════════════╝');
       })();
