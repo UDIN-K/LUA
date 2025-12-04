@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Udink Mod - Diep.io Ultimate Cheat
 // @description  Ultimate Diep.io Mod by Udink - Aimbot, ESP, Auto Fire, Auto Spin, Zoom Hack & More!
-// @version      3.1.0
+// @version      3.3.1
 // @author       Udink
 // @license      MIT
 // @match        https://diep.io/*
@@ -12,52 +12,64 @@
 // ==/UserScript==
 
 /*
-  * ╔═══════════════════════════════════════════════════════════════╗
-  * ║                      UDINK MOD v3.1.0                         ║
-  * ║               Ultimate Diep.io Cheat Suite                    ║
-  * ╠═══════════════════════════════════════════════════════════════╣
-  * ║  Developer  : Udink                                           ║
-  * ║  Version    : 3.1.0                                           ║
-  * ║  Released   : December 2024                                   ║
-  * ╠═══════════════════════════════════════════════════════════════╣
-  * ║  Features:                                                    ║
-  * ║  • Aimbot with Prediction                                     ║
-  * ║  • ESP / Wallhack                                             ║
-  * ║  • Auto Fire                                                  ║
-  * ║  • Auto Spin                                                  ║
-  * ║  • Auto Respawn                                               ║
-  * ║  • Zoom Hack                                                  ║
-  * ║  • FPS Counter                                                ║
-  * ║  • Coordinate Display                                         ║
-  * ║  • Custom Crosshair                                           ║
-  * ║  • Triggerbot                                                 ║
-  * ╠═══════════════════════════════════════════════════════════════╣
-  * ║  © 2024 Udink. All Rights Reserved.                          ║
-  * ║  For personal use only. Do not redistribute.                  ║
-  * ╚═══════════════════════════════════════════════════════════════╝
-  */
+ * ╔═══════════════════════════════════════════════════════════════╗
+ * ║                      UDINK MOD v3.3.1                         ║
+ * ║               Ultimate Diep.io Cheat Suite                    ║
+ * ╠═══════════════════════════════════════════════════════════════╣
+ * ║  Developer  : Udink                                           ║
+ * ║  Version    : 3.3.1                                           ║
+ * ║  Released   : December 2025                                   ║
+ * ╠═══════════════════════════════════════════════════════════════╣
+ * ║  Features:                                                    ║
+ * ║  • Aimbot with Prediction                                     ║
+ * ║  • ESP / Wallhack                                             ║
+ * ║  • Auto Fire                                                  ║
+ * ║  • Auto Spin                                                  ║
+ * ║  • Auto Respawn                                               ║
+ * ║  • Zoom Hack                                                  ║
+ * ║  • FPS Counter                                                ║
+ * ║  • Coordinate Display                                         ║
+ * ║  • Custom Crosshair                                           ║
+ * ║  • Triggerbot                                                 ║
+ * ║  • Build Upgrader - Save & Quick Spawn                        ║
+ * ╠═══════════════════════════════════════════════════════════════╣
+ * ║  © 2025 Udink. All Rights Reserved.                           ║
+ * ║  For personal use only. Do not redistribute.                  ║
+ * ╚═══════════════════════════════════════════════════════════════╝
+ */
 
-  //Changelog
-  //1.0.0 : Initial release
-  //2.0.0 : Added menu system
-  //3.0.0 : Added all features - Auto Fire, Auto Spin, Zoom, etc.
-  //3.1.0 : Threat Priority Mode, Zoom Hack fixed, Draggable toggle button,
-  //        Threat Indicator, Smooth Aim, Better Prediction, Drone/Crasher detection
+//Changelog
+//1.0.0 : Initial release
+//2.0.0 : Added menu system
+//3.0.0 : Added all features - Auto Fire, Auto Spin, Zoom, etc.
+//3.1.0 : Threat Priority, Zoom Hack fixed, Draggable button, Better Prediction
+//3.2.0 : Anti-anti-cheat bypass integrated
+//3.3.0 : Build Upgrader integrated - Save custom builds, quick spawn with stats
+//3.3.1 : UI Polish - Modern glassmorphism design, better animations, improved UX
 
-  (() => {
-    const _window = 'undefined' == typeof unsafeWindow ? window : unsafeWindow;
-    if (_window.diepAPI) return;
+// ==================== ANTI-ANTI-CHEAT BYPASS ====================
+// This must run FIRST before anything else to disable Diep.io's anti-cheat
+Object.freeze = new Proxy(Object.freeze, {
+  apply(target, thisArg, args) {
+    Error.stackTraceLimit = 0;
+    return target.apply(thisArg, args);
+  }
+});
 
-    //diepAPI start
-    var diepAPI;
-    /******/ (() => {
-      // webpackBootstrap
-      /******/ 'use strict';
-      /******/ // The require scope
-      /******/ var __webpack_require__ = {};
-      /******/
-      /************************************************************************/
-      /******/ /* webpack/runtime/define property getters */
+(() => {
+  const _window = 'undefined' == typeof unsafeWindow ? window : unsafeWindow;
+  if (_window.diepAPI) return;
+
+  //diepAPI start
+  var diepAPI;
+  /******/ (() => {
+    // webpackBootstrap
+    /******/ 'use strict';
+    /******/ // The require scope
+    /******/ var __webpack_require__ = {};
+    /******/
+    /************************************************************************/
+    /******/ /* webpack/runtime/define property getters */
       /******/ (() => {
         /******/ // define getter functions for harmony exports
         /******/ __webpack_require__.d = (exports, definition) => {
@@ -1826,6 +1838,64 @@
               console.error('[Udink Mod] overlay canvas not found');
           }
 
+          // ==================== BUILD UPGRADER SYSTEM ====================
+          const UPGRADER = {
+              MAX_POINTS: 33,
+              MAX_ATTRIBUTE_LEVEL: 7,
+              STORAGE_KEYS: {
+                  USERNAME: 'udinkSpawnUsername',
+                  SAVED_NAMES: 'udinkSavedNames',
+                  SAVED_BUILDS: 'udinkSavedBuilds'
+              },
+              ATTRIBUTES: [
+                  { name: 'Health Regen', color: 'rgb(232, 188, 157)', maxLevel: 10 },
+                  { name: 'Max Health', color: 'rgb(230, 128, 234)', maxLevel: 10 },
+                  { name: 'Body Damage', color: 'rgb(165, 128, 234)', maxLevel: 10 },
+                  { name: 'Bullet Speed', color: 'rgb(128, 162, 234)', maxLevel: 7 },
+                  { name: 'Bullet Pen', color: 'rgb(234, 215, 128)', maxLevel: 7 },
+                  { name: 'Bullet Dmg', color: 'rgb(234, 128, 128)', maxLevel: 7 },
+                  { name: 'Reload', color: 'rgb(164, 234, 128)', maxLevel: 7 },
+                  { name: 'Move Speed', color: 'rgb(128, 234, 230)', maxLevel: 10 }
+              ],
+              DEFAULT_BUILDS: [
+                  { name: 'Glass Cannon', cmd: '34567777234567', color: '#ff6b6b' },
+                  { name: 'Rammer', cmd: '12312312388888', color: '#ffa502' },
+                  { name: 'Bullet Build', cmd: '34567774567777', color: '#2ed573' },
+                  { name: 'Hybrid', cmd: '23456772345677', color: '#5352ed' }
+              ]
+          };
+
+          function getStorageJSON(key) {
+              try {
+                  return JSON.parse(localStorage.getItem(key) || 'null') || [];
+              } catch(e) { return []; }
+          }
+          
+          function setStorageJSON(key, value) {
+              localStorage.setItem(key, JSON.stringify(value));
+          }
+
+          function countAllocations(code) {
+              const counts = new Array(UPGRADER.ATTRIBUTES.length).fill(0);
+              for (let i = 0; i < code.length; i++) {
+                  const idx = code.charCodeAt(i) - 49;
+                  if (idx >= 0 && idx < counts.length) {
+                      const maxL = UPGRADER.ATTRIBUTES[idx].maxLevel || UPGRADER.MAX_ATTRIBUTE_LEVEL;
+                      if (counts[idx] < maxL) counts[idx]++;
+                  }
+              }
+              const total = counts.reduce((a, c) => a + c, 0);
+              return { counts, total };
+          }
+
+          function spawnWithBuild(cmd) {
+              const spawnName = document.getElementById('spawn-name-input')?.value?.trim() || '';
+              if (_window.input) {
+                  _window.input.execute('game_spawn ' + spawnName);
+                  _window.input.execute('game_stats_build ' + cmd);
+              }
+          }
+
           const CONFIG = {
               // Combat
               aimbot: true,
@@ -1979,81 +2049,573 @@
           }, 1000);
 
           const css = `
-              @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&display=swap');
-              :root { --glass-bg: rgba(20, 20, 25, 0.75); --glass-border: rgba(255, 255, 255, 0.1); --ios-green: #30D158; --text-sec: #EBEBF599; }
-              #ios-gui * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; user-select: none; outline: none; }
-              #ios-toggle { position: fixed; top: 20px; left: 20px; width: 44px; height: 44px; background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 50%; cursor: grab; z-index: 9999999; display: flex; align-items: center; justify-content: center; color: white; transition: transform 0.2s, background 0.2s, box-shadow 0.2s; box-shadow: 0 4px 24px rgba(0,0,0,0.3); touch-action: none; }
-              #ios-toggle:hover { transform: scale(1.1); background: rgba(255,255,255,0.1); }
-              #ios-toggle:active { cursor: grabbing; transform: scale(1.15); box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
-              #ios-toggle.dragging { cursor: grabbing; transition: none; transform: scale(1.15); box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+              @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+              
+              :root { 
+                  --glass-bg: rgba(15, 15, 20, 0.85); 
+                  --glass-border: rgba(255, 255, 255, 0.08); 
+                  --ios-green: #30D158; 
+                  --ios-blue: #0A84FF;
+                  --ios-red: #FF453A;
+                  --ios-orange: #FF9F0A;
+                  --ios-purple: #BF5AF2;
+                  --text-primary: #FFFFFF;
+                  --text-sec: rgba(235, 235, 245, 0.6);
+                  --card-bg: rgba(255, 255, 255, 0.03);
+                  --hover-bg: rgba(255, 255, 255, 0.08);
+                  --accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              }
+              
+              #ios-gui * { 
+                  box-sizing: border-box; 
+                  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+                  user-select: none; 
+                  outline: none; 
+              }
+              
+              /* Toggle Button */
+              #ios-toggle { 
+                  position: fixed; 
+                  top: 20px; 
+                  left: 20px; 
+                  width: 50px; 
+                  height: 50px; 
+                  background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+                  backdrop-filter: blur(20px); 
+                  border: 1px solid rgba(255,255,255,0.2); 
+                  border-radius: 16px; 
+                  cursor: grab; 
+                  z-index: 9999999; 
+                  display: flex; 
+                  align-items: center; 
+                  justify-content: center; 
+                  color: white; 
+                  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+                  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4), inset 0 1px 0 rgba(255,255,255,0.2); 
+                  touch-action: none; 
+              }
+              #ios-toggle:hover { 
+                  transform: scale(1.08) translateY(-2px); 
+                  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.5), inset 0 1px 0 rgba(255,255,255,0.3); 
+              }
+              #ios-toggle:active, #ios-toggle.dragging { 
+                  cursor: grabbing; 
+                  transform: scale(1.12); 
+                  box-shadow: 0 16px 48px rgba(102, 126, 234, 0.6); 
+              }
+              #ios-toggle.dragging { transition: none; }
 
-              #ios-menu { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95); width: 750px; height: 500px; background: var(--glass-bg); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%); border: 1px solid var(--glass-border); border-radius: 24px; box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6); display: none; opacity: 0; transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1); overflow: hidden; z-index: 9999998; }
-
-              #ios-menu.open { display: flex; opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+              /* Main Menu */
+              #ios-menu { 
+                  position: fixed; 
+                  top: 50%; 
+                  left: 50%; 
+                  transform: translate(-50%, -50%) scale(0.9); 
+                  width: 820px; 
+                  height: 560px; 
+                  background: linear-gradient(180deg, rgba(25, 25, 35, 0.95) 0%, rgba(15, 15, 22, 0.98) 100%);
+                  backdrop-filter: blur(60px) saturate(200%); 
+                  -webkit-backdrop-filter: blur(60px) saturate(200%); 
+                  border: 1px solid var(--glass-border); 
+                  border-radius: 28px; 
+                  box-shadow: 0 50px 100px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255,255,255,0.05) inset; 
+                  display: none; 
+                  opacity: 0; 
+                  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); 
+                  overflow: hidden; 
+                  z-index: 9999998; 
+              }
+              #ios-menu.open { 
+                  display: flex; 
+                  opacity: 1; 
+                  transform: translate(-50%, -50%) scale(1); 
+                  pointer-events: auto; 
+              }
               #ios-menu:not(.open) { pointer-events: none; }
 
-              .sidebar { width: 240px; background: rgba(0,0,0,0.2); border-right: 1px solid var(--glass-border); padding: 30px 15px; display: flex; flex-direction: column; position: relative; }
-              .logo { font-size: 26px; font-weight: 800; color: white; margin-bottom: 40px; padding-left: 15px; letter-spacing: -0.5px; }
-              .logo span { color: #0A84FF; }
-              .nav-glider { position: absolute; left: 15px; width: calc(100% - 30px); height: 44px; background: rgba(255, 255, 255, 0.12); border-radius: 12px; transition: top 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 0; pointer-events: none; }
-              .nav-item { position: relative; z-index: 1; padding: 12px 18px; margin-bottom: 4px; border-radius: 12px; color: var(--text-sec); font-weight: 600; font-size: 15px; cursor: pointer; transition: color 0.3s; height: 44px; display: flex; align-items: center; }
-              .nav-item:hover, .nav-item.active { color: white; }
-              .content { flex: 1; padding: 30px 40px; overflow-y: auto; }
-              .content::-webkit-scrollbar { display: none; }
-              .tab-page { display: none; animation: fadeSlide 0.4s ease; }
+              /* Sidebar */
+              .sidebar { 
+                  width: 220px; 
+                  background: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.4) 100%);
+                  border-right: 1px solid var(--glass-border); 
+                  padding: 28px 12px; 
+                  display: flex; 
+                  flex-direction: column; 
+                  position: relative; 
+              }
+              .logo { 
+                  font-size: 24px; 
+                  font-weight: 800; 
+                  color: white; 
+                  margin-bottom: 32px; 
+                  padding-left: 16px; 
+                  letter-spacing: -0.5px;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+              }
+              .logo::before {
+                  content: '⚡';
+                  font-size: 20px;
+              }
+              .logo span { 
+                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                  -webkit-background-clip: text;
+                  -webkit-text-fill-color: transparent;
+                  background-clip: text;
+              }
+              .nav-glider { 
+                  position: absolute; 
+                  left: 12px; 
+                  width: calc(100% - 24px); 
+                  height: 46px; 
+                  background: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%);
+                  border: 1px solid rgba(102, 126, 234, 0.3);
+                  border-radius: 14px; 
+                  transition: top 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); 
+                  z-index: 0; 
+                  pointer-events: none;
+                  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+              }
+              .nav-item { 
+                  position: relative; 
+                  z-index: 1; 
+                  padding: 13px 16px; 
+                  margin-bottom: 4px; 
+                  border-radius: 14px; 
+                  color: var(--text-sec); 
+                  font-weight: 600; 
+                  font-size: 14px; 
+                  cursor: pointer; 
+                  transition: all 0.3s ease; 
+                  height: 46px; 
+                  display: flex; 
+                  align-items: center;
+                  gap: 10px;
+              }
+              .nav-item:hover { color: rgba(255,255,255,0.9); }
+              .nav-item.active { color: white; text-shadow: 0 0 20px rgba(255,255,255,0.3); }
+              
+              /* Content Area */
+              .content { 
+                  flex: 1; 
+                  padding: 28px 36px; 
+                  overflow-y: auto; 
+                  overflow-x: hidden;
+              }
+              .content::-webkit-scrollbar { width: 6px; }
+              .content::-webkit-scrollbar-track { background: transparent; }
+              .content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+              .content::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+              
+              .tab-page { display: none; animation: fadeSlide 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
               .tab-page.active { display: block; }
-              @keyframes fadeSlide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-              .header { font-size: 32px; font-weight: 700; color: white; margin-bottom: 25px; }
-              .card { background: rgba(255, 255, 255, 0.05); border-radius: 16px; overflow: hidden; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05); }
-              .row { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: rgba(0,0,0,0.1); border-bottom: 1px solid rgba(255,255,255,0.05); }
+              @keyframes fadeSlide { 
+                  from { opacity: 0; transform: translateY(15px); } 
+                  to { opacity: 1; transform: translateY(0); } 
+              }
+              
+              .header { 
+                  font-size: 28px; 
+                  font-weight: 700; 
+                  color: white; 
+                  margin-bottom: 24px;
+                  letter-spacing: -0.5px;
+              }
+              
+              /* Cards */
+              .card { 
+                  background: var(--card-bg); 
+                  border-radius: 18px; 
+                  overflow: hidden; 
+                  margin-bottom: 16px; 
+                  border: 1px solid var(--glass-border);
+                  transition: all 0.3s ease;
+              }
+              .card:hover {
+                  border-color: rgba(255,255,255,0.12);
+                  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+              }
+              
+              .row { 
+                  display: flex; 
+                  justify-content: space-between; 
+                  align-items: center; 
+                  padding: 14px 18px; 
+                  background: transparent;
+                  border-bottom: 1px solid var(--glass-border); 
+                  transition: background 0.2s ease;
+              }
+              .row:hover { background: var(--hover-bg); }
               .row:last-child { border-bottom: none; }
-              .label { font-size: 16px; font-weight: 500; color: white; }
-              .ios-switch { width: 50px; height: 30px; background: rgba(120,120,128,0.4); border-radius: 15px; position: relative; cursor: pointer; transition: 0.3s; }
-              .ios-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 26px; height: 26px; background: white; border-radius: 50%; transition: 0.3s; }
-              .ios-switch.active { background: var(--ios-green); }
+              
+              .label { 
+                  font-size: 14px; 
+                  font-weight: 500; 
+                  color: var(--text-primary);
+                  letter-spacing: -0.2px;
+              }
+              
+              /* iOS Switch */
+              .ios-switch { 
+                  width: 52px; 
+                  height: 32px; 
+                  background: rgba(120,120,128,0.32); 
+                  border-radius: 16px; 
+                  position: relative; 
+                  cursor: pointer; 
+                  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                  box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+              }
+              .ios-switch::after { 
+                  content: ''; 
+                  position: absolute; 
+                  top: 2px; 
+                  left: 2px; 
+                  width: 28px; 
+                  height: 28px; 
+                  background: white; 
+                  border-radius: 50%; 
+                  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+              }
+              .ios-switch.active { 
+                  background: linear-gradient(135deg, #34C759 0%, #30D158 100%);
+                  box-shadow: 0 0 20px rgba(48, 209, 88, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+              }
               .ios-switch.active::after { transform: translateX(20px); }
-              .key-btn { background: rgba(0,0,0,0.4); padding: 6px 12px; border-radius: 8px; color: white; font-family: 'Menlo', monospace; font-size: 13px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; min-width: 80px; text-align: center; }
-              .key-btn.recording { background: #FF453A; border-color: #FF453A; }
-              input[type=range] { -webkit-appearance: none; width: 160px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; }
-              input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: white; border-radius: 50%; cursor: pointer; }
-              input[type=color] { -webkit-appearance: none; border: none; width: 32px; height: 32px; border-radius: 50%; background: none; cursor: pointer; }
-              input[type=color]::-webkit-color-swatch { border: 2px solid rgba(255,255,255,0.2); border-radius: 50%; }
-              select { background: rgba(0,0,0,0.3); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+              
+              /* Inputs */
+              .key-btn { 
+                  background: rgba(0,0,0,0.4); 
+                  padding: 8px 14px; 
+                  border-radius: 10px; 
+                  color: white; 
+                  font-family: 'SF Mono', 'Menlo', monospace; 
+                  font-size: 12px; 
+                  font-weight: 500;
+                  border: 1px solid rgba(255,255,255,0.1); 
+                  cursor: pointer; 
+                  min-width: 90px; 
+                  text-align: center;
+                  transition: all 0.2s ease;
+              }
+              .key-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+              .key-btn.recording { 
+                  background: linear-gradient(135deg, #FF453A 0%, #FF6961 100%);
+                  border-color: transparent;
+                  animation: pulse 1s infinite;
+              }
+              @keyframes pulse {
+                  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 69, 58, 0.4); }
+                  50% { box-shadow: 0 0 0 8px rgba(255, 69, 58, 0); }
+              }
+              
+              input[type=range] { 
+                  -webkit-appearance: none; 
+                  width: 140px; 
+                  height: 6px; 
+                  background: rgba(255,255,255,0.15); 
+                  border-radius: 3px;
+                  transition: all 0.2s ease;
+              }
+              input[type=range]:hover { background: rgba(255,255,255,0.2); }
+              input[type=range]::-webkit-slider-thumb { 
+                  -webkit-appearance: none; 
+                  width: 18px; 
+                  height: 18px; 
+                  background: white; 
+                  border-radius: 50%; 
+                  cursor: pointer;
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                  transition: all 0.2s ease;
+              }
+              input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.1); }
+              
+              input[type=color] { 
+                  -webkit-appearance: none; 
+                  border: none; 
+                  width: 36px; 
+                  height: 36px; 
+                  border-radius: 50%; 
+                  background: none; 
+                  cursor: pointer;
+                  padding: 0;
+              }
+              input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+              input[type=color]::-webkit-color-swatch { 
+                  border: 3px solid rgba(255,255,255,0.15); 
+                  border-radius: 50%;
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+              }
+              
+              select { 
+                  background: rgba(0,0,0,0.4); 
+                  color: white; 
+                  border: 1px solid rgba(255,255,255,0.1); 
+                  padding: 8px 14px; 
+                  border-radius: 10px; 
+                  font-size: 13px; 
+                  font-weight: 500;
+                  cursor: pointer;
+                  transition: all 0.2s ease;
+              }
+              select:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+              select option { background: #1a1a2e; }
+              
+              /* Build Upgrader Styles */
+              .build-input { 
+                  background: rgba(0,0,0,0.4); 
+                  border: 1px solid rgba(255,255,255,0.15); 
+                  border-radius: 12px; 
+                  color: white; 
+                  padding: 12px 16px; 
+                  font-size: 14px; 
+                  width: 100%;
+                  transition: all 0.2s ease;
+              }
+              .build-input:focus { 
+                  border-color: var(--ios-blue); 
+                  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+                  background: rgba(0,0,0,0.5);
+              }
+              .build-input::placeholder { color: rgba(255,255,255,0.35); }
+              
+              .build-grid { 
+                  display: grid; 
+                  grid-template-columns: 1fr 1fr; 
+                  gap: 12px; 
+                  margin-top: 12px; 
+              }
+              .build-btn { 
+                  background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%);
+                  border: 1px solid rgba(255,255,255,0.1); 
+                  border-radius: 14px; 
+                  padding: 14px 16px; 
+                  color: white; 
+                  font-weight: 600; 
+                  font-size: 13px;
+                  cursor: pointer; 
+                  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); 
+                  display: flex; 
+                  align-items: center; 
+                  justify-content: space-between;
+              }
+              .build-btn:hover { 
+                  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.08) 100%);
+                  transform: translateY(-3px) scale(1.02); 
+                  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+              }
+              .build-btn .build-name { flex: 1; text-align: left; }
+              .build-btn .build-actions { display: flex; gap: 8px; }
+              .build-btn .build-action { 
+                  background: rgba(255,69,58,0.2); 
+                  border-radius: 8px; 
+                  padding: 6px 10px; 
+                  font-size: 11px; 
+                  opacity: 0.8;
+                  transition: all 0.2s ease;
+              }
+              .build-btn .build-action:hover { opacity: 1; background: rgba(255,69,58,0.4); transform: scale(1.1); }
+              .add-build-btn { 
+                  background: linear-gradient(135deg, rgba(48, 209, 88, 0.15) 0%, rgba(48, 209, 88, 0.08) 100%);
+                  border: 2px dashed rgba(48, 209, 88, 0.4); 
+                  color: #30D158;
+              }
+              .add-build-btn:hover { 
+                  background: linear-gradient(135deg, rgba(48, 209, 88, 0.25) 0%, rgba(48, 209, 88, 0.15) 100%);
+                  border-style: solid;
+                  border-color: rgba(48, 209, 88, 0.6);
+              }
+              
+              /* Attribute Editor */
+              .attr-row { 
+                  display: flex; 
+                  align-items: center; 
+                  margin-bottom: 10px;
+                  padding: 6px 0;
+                  border-radius: 8px;
+                  transition: background 0.2s ease;
+              }
+              .attr-row:hover { background: rgba(255,255,255,0.03); }
+              .attr-label { 
+                  width: 95px; 
+                  font-size: 12px; 
+                  font-weight: 500;
+                  color: rgba(255,255,255,0.75);
+                  letter-spacing: -0.2px;
+              }
+              .attr-squares { 
+                  display: flex; 
+                  gap: 3px; 
+                  flex: 1;
+              }
+              .attr-square { 
+                  width: 22px; 
+                  height: 22px; 
+                  background: rgba(60,60,70,0.6); 
+                  border-radius: 5px; 
+                  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+                  border: 1px solid transparent;
+              }
+              .attr-square.filled { 
+                  border-color: rgba(0,0,0,0.4);
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2);
+                  transform: scale(1.05);
+              }
+              .attr-btns { 
+                  display: flex; 
+                  gap: 6px;
+                  margin-left: 8px;
+              }
+              .attr-btn { 
+                  width: 28px; 
+                  height: 28px; 
+                  border-radius: 8px; 
+                  border: none; 
+                  font-weight: bold; 
+                  font-size: 16px;
+                  cursor: pointer; 
+                  display: flex; 
+                  align-items: center; 
+                  justify-content: center;
+                  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+              }
+              .attr-btn.minus { 
+                  background: linear-gradient(135deg, rgba(255,69,58,0.25) 0%, rgba(255,69,58,0.15) 100%);
+                  color: #FF453A;
+              }
+              .attr-btn.minus:hover { 
+                  background: linear-gradient(135deg, rgba(255,69,58,0.4) 0%, rgba(255,69,58,0.25) 100%);
+                  transform: scale(1.15);
+              }
+              .attr-btn.plus { 
+                  background: linear-gradient(135deg, rgba(48,209,88,0.25) 0%, rgba(48,209,88,0.15) 100%);
+                  color: #30D158;
+              }
+              .attr-btn.plus:hover { 
+                  background: linear-gradient(135deg, rgba(48,209,88,0.4) 0%, rgba(48,209,88,0.25) 100%);
+                  transform: scale(1.15);
+              }
+              
+              .points-counter { 
+                  background: linear-gradient(135deg, rgba(10, 132, 255, 0.2) 0%, rgba(10, 132, 255, 0.1) 100%);
+                  border: 1px solid rgba(10, 132, 255, 0.3);
+                  padding: 10px 18px; 
+                  border-radius: 12px; 
+                  text-align: center; 
+                  margin-bottom: 16px; 
+                  font-weight: 700;
+                  font-size: 15px;
+                  color: #0A84FF;
+                  letter-spacing: -0.3px;
+              }
+              .build-code { 
+                  font-family: 'SF Mono', 'Menlo', monospace; 
+                  background: rgba(0,0,0,0.4); 
+                  padding: 10px 16px; 
+                  border-radius: 10px; 
+                  text-align: center; 
+                  margin-top: 12px; 
+                  font-size: 13px;
+                  color: var(--text-sec);
+                  border: 1px solid var(--glass-border);
+              }
+              .spawn-row { 
+                  display: flex; 
+                  gap: 12px; 
+                  margin-bottom: 16px; 
+              }
+              .spawn-row .build-input { flex: 1; }
+              .spawn-row .heart-btn { 
+                  background: linear-gradient(135deg, rgba(255,69,58,0.15) 0%, rgba(255,69,58,0.08) 100%);
+                  border: 1px solid rgba(255,69,58,0.25); 
+                  border-radius: 12px; 
+                  padding: 12px 16px; 
+                  cursor: pointer; 
+                  font-size: 18px;
+                  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                  color: rgba(255,69,58,0.7);
+              }
+              .spawn-row .heart-btn:hover { 
+                  transform: scale(1.1);
+                  background: linear-gradient(135deg, rgba(255,69,58,0.25) 0%, rgba(255,69,58,0.15) 100%);
+              }
+              .spawn-row .heart-btn.active { 
+                  background: linear-gradient(135deg, rgba(255,69,58,0.5) 0%, rgba(255,69,58,0.35) 100%);
+                  color: #FF453A;
+                  box-shadow: 0 0 20px rgba(255,69,58,0.3);
+              }
+              
+              /* Info Tab Special Styles */
+              .info-badge {
+                  display: inline-flex;
+                  align-items: center;
+                  padding: 4px 12px;
+                  border-radius: 20px;
+                  font-size: 13px;
+                  font-weight: 600;
+              }
+              .badge-blue { background: rgba(10, 132, 255, 0.2); color: #0A84FF; }
+              .badge-green { background: rgba(48, 209, 88, 0.2); color: #30D158; }
+              .badge-orange { background: rgba(255, 159, 10, 0.2); color: #FF9F0A; }
+              .badge-purple { background: rgba(191, 90, 242, 0.2); color: #BF5AF2; }
+              
+              /* Footer in sidebar */
+              .sidebar-footer {
+                  margin-top: auto;
+                  padding: 16px;
+                  text-align: center;
+                  font-size: 11px;
+                  color: var(--text-sec);
+                  border-top: 1px solid var(--glass-border);
+              }
+              .sidebar-footer a {
+                  color: var(--ios-blue);
+                  text-decoration: none;
+              }
           `;
           const s = document.createElement('style'); s.innerHTML = css; document.head.appendChild(s);
 
           const gui = document.createElement('div'); gui.id = 'ios-gui';
 
           const toggleBtn = document.createElement('div'); toggleBtn.id = 'ios-toggle';
-          toggleBtn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`;
+          toggleBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>`;
           gui.appendChild(toggleBtn);
 
           const menu = document.createElement('div'); menu.id = 'ios-menu';
           menu.innerHTML = `
               <div class="sidebar">
-                  <div class="logo">Udink<span> Mod</span></div>
+                  <div class="logo">Udink<span>Mod</span></div>
                   <div class="nav-glider" id="nav-glider"></div>
                   <div class="nav-item active" data-target="combat">⚔️ Combat</div>
                   <div class="nav-item" data-target="visuals">👁️ Visuals</div>
+                  <div class="nav-item" data-target="builds">🎯 Builds</div>
                   <div class="nav-item" data-target="misc">🔧 Misc</div>
                   <div class="nav-item" data-target="colors">🎨 Colors</div>
-                  <div class="nav-item" data-target="binds">⌨️ Keybinds</div>
-                  <div class="nav-item" data-target="info">ℹ️ Info</div>
+                  <div class="nav-item" data-target="binds">⌨️ Keys</div>
+                  <div class="nav-item" data-target="info">ℹ️ About</div>
+                  <div class="sidebar-footer">
+                      <div style="margin-bottom:6px;">v3.3.1 • Made with ❤️</div>
+                      <div>Press <kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;font-size:10px;">V</kbd> to toggle menu</div>
+                  </div>
               </div>
               <div class="content">
                   <div id="tab-combat" class="tab-page active">
-                      <div class="header">⚔️ Combat</div>
+                      <div class="header">Combat Settings</div>
                       <div class="card">
                           <div class="row"><span class="label">Aimbot</span><div class="ios-switch" id="chk-aimbot"></div></div>
                           <div class="row"><span class="label">Prediction Aim</span><div class="ios-switch" id="chk-predictionAim"></div></div>
                           <div class="row"><span class="label">Triggerbot</span><div class="ios-switch" id="chk-triggerbot"></div></div>
                           <div class="row"><span class="label">Auto Fire</span><div class="ios-switch" id="chk-autoFire"></div></div>
-                          <div class="row"><span class="label">Priority</span><select id="sel-priority"><option value="threat">Threat Priority</option><option value="player">Player Only</option><option value="farm">Farm Only</option><option value="distance">Nearest</option></select></div>
+                      </div>
+                      <div class="card">
+                          <div class="row"><span class="label">Target Priority</span><select id="sel-priority"><option value="threat">🎯 Threat First</option><option value="player">👤 Players Only</option><option value="farm">🔷 Farm Only</option><option value="distance">📏 Nearest</option></select></div>
                           <div class="row"><span class="label">FOV Radius</span><input type="range" id="rng-fov" min="100" max="2000"></div>
                       </div>
                   </div>
                   <div id="tab-visuals" class="tab-page">
-                      <div class="header">👁️ Visuals</div>
+                      <div class="header">Visual Settings</div>
                       <div class="card">
                           <div class="row"><span class="label">ESP Boxes</span><div class="ios-switch" id="chk-esp"></div></div>
                           <div class="row"><span class="label">Trace Lines</span><div class="ios-switch" id="chk-espLines"></div></div>
@@ -2063,33 +2625,55 @@
                           <div class="row"><span class="label">Coordinates</span><div class="ios-switch" id="chk-showCoords"></div></div>
                           <div class="row"><span class="label">Custom Crosshair</span><div class="ios-switch" id="chk-customCrosshair"></div></div>
                           <div class="row"><span class="label">Threat Indicator</span><div class="ios-switch" id="chk-showThreatIndicator"></div></div>
+                      </div>
+                      <div class="card">
                           <div class="row"><span class="label">Line Width</span><input type="range" id="rng-lineWidth" min="1" max="6"></div>
                       </div>
                   </div>
+                  <div id="tab-builds" class="tab-page">
+                      <div class="header">Build Upgrader</div>
+                      <div class="card">
+                          <div class="spawn-row">
+                              <input type="text" class="build-input" id="spawn-name-input" placeholder="Enter spawn name...">
+                              <button class="heart-btn" id="heart-btn">♥</button>
+                          </div>
+                          <div class="points-counter" id="points-counter">Points: 33</div>
+                          <div id="attr-editor"></div>
+                          <div class="build-code" id="build-code">Code: </div>
+                      </div>
+                      <div class="card">
+                          <div class="row" style="flex-direction:column;align-items:stretch;">
+                              <span class="label" style="margin-bottom:10px;">Saved Builds</span>
+                              <div class="build-grid" id="build-grid"></div>
+                          </div>
+                      </div>
+                  </div>
                   <div id="tab-misc" class="tab-page">
-                      <div class="header">🔧 Misc</div>
+                      <div class="header">Miscellaneous</div>
                       <div class="card">
                           <div class="row"><span class="label">Auto Spin</span><div class="ios-switch" id="chk-autoSpin"></div></div>
-                          <div class="row"><span class="label">Spin Speed</span><input type="range" id="rng-spinSpeed" min="1" max="20"></div>
                           <div class="row"><span class="label">Auto Respawn</span><div class="ios-switch" id="chk-autoRespawn"></div></div>
                           <div class="row"><span class="label">Zoom Hack</span><div class="ios-switch" id="chk-zoomHack"></div></div>
+                      </div>
+                      <div class="card">
+                          <div class="row"><span class="label">Spin Speed</span><input type="range" id="rng-spinSpeed" min="1" max="20"></div>
                           <div class="row"><span class="label">Zoom Level</span><input type="range" id="rng-zoomLevel" min="0.1" max="1" step="0.1"></div>
                           <div class="row"><span class="label">Threat Radius</span><input type="range" id="rng-threatRadius" min="100" max="800"></div>
                           <div class="row"><span class="label">Prediction Strength</span><input type="range" id="rng-predictionStrength" min="0.1" max="2" step="0.1"></div>
                       </div>
                   </div>
                   <div id="tab-colors" class="tab-page">
-                      <div class="header">🎨 Colors</div>
+                      <div class="header">Color Settings</div>
                       <div class="card">
-                          <div class="row"><span class="label">Enemy</span><input type="color" id="col-cEnemy"></div>
-                          <div class="row"><span class="label">Farm</span><input type="color" id="col-cFarm"></div>
-                          <div class="row"><span class="label">Pentagon</span><input type="color" id="col-cPenta"></div>
-                          <div class="row"><span class="label">Tracer</span><input type="color" id="col-cTrace"></div>
-                          <div class="row"><span class="label">Crosshair</span><input type="color" id="col-crosshairColor"></div>
+                          <div class="row"><span class="label">Enemy Color</span><input type="color" id="col-cEnemy"></div>
+                          <div class="row"><span class="label">Farm Color</span><input type="color" id="col-cFarm"></div>
+                          <div class="row"><span class="label">Pentagon Color</span><input type="color" id="col-cPenta"></div>
+                          <div class="row"><span class="label">Tracer Color</span><input type="color" id="col-cTrace"></div>
+                          <div class="row"><span class="label">Crosshair Color</span><input type="color" id="col-crosshairColor"></div>
                       </div>
                   </div>
                   <div id="tab-binds" class="tab-page">
-                      <div class="header">⌨️ Keybinds</div>
+                      <div class="header">Keybinds</div>
                       <div class="card">
                           <div class="row"><span class="label">Toggle Menu</span><div class="key-btn" id="bind-toggleMenu"></div></div>
                           <div class="row"><span class="label">Toggle Aimbot</span><div class="key-btn" id="bind-toggleAimbot"></div></div>
@@ -2100,17 +2684,30 @@
                       </div>
                   </div>
                   <div id="tab-info" class="tab-page">
-                      <div class="header">ℹ️ Info</div>
+                      <div class="header">ℹ️ About</div>
                       <div class="card">
-                          <div class="row"><span class="label">Mod Name</span><span style="color:#0A84FF">Udink Mod</span></div>
-                          <div class="row"><span class="label">Version</span><span style="color:#30D158">3.1.0</span></div>
-                          <div class="row"><span class="label">Developer</span><span style="color:#FF9500">Udink</span></div>
-                          <div class="row"><span class="label">Status</span><span style="color:#30D158">✓ Active</span></div>
+                          <div class="row"><span class="label">Mod Name</span><span class="info-badge badge-blue">⚡ Udink Mod</span></div>
+                          <div class="row"><span class="label">Version</span><span class="info-badge badge-green">v3.3.1</span></div>
+                          <div class="row"><span class="label">Developer</span><span class="info-badge badge-orange">Udink</span></div>
+                          <div class="row"><span class="label">Status</span><span class="info-badge badge-green">✓ Active</span></div>
                       </div>
                       <div class="card">
-                          <div class="row" style="flex-direction:column;align-items:flex-start;">
-                              <span class="label" style="margin-bottom:10px;">© 2024 Udink. All Rights Reserved.</span>
-                              <span style="color:var(--text-sec);font-size:12px;">Premium Diep.io Mod - For personal use only</span>
+                          <div class="row" style="flex-direction:column;align-items:flex-start;gap:12px;">
+                              <span class="label" style="font-size:16px;">✨ Features</span>
+                              <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                                  <span class="info-badge badge-purple">Aimbot</span>
+                                  <span class="info-badge badge-purple">ESP</span>
+                                  <span class="info-badge badge-purple">Auto Fire</span>
+                                  <span class="info-badge badge-purple">Zoom Hack</span>
+                                  <span class="info-badge badge-purple">Build Upgrader</span>
+                                  <span class="info-badge badge-purple">Triggerbot</span>
+                              </div>
+                          </div>
+                      </div>
+                      <div class="card">
+                          <div class="row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+                              <span class="label">📜 License</span>
+                              <span style="color:var(--text-sec);font-size:13px;line-height:1.5;">MIT License - © 2025 Udink<br>Premium Diep.io Mod • For personal use only</span>
                           </div>
                       </div>
                   </div>
@@ -2299,6 +2896,170 @@
           setupKeybind('bind-toggleAutoFire', 'toggleAutoFire');
           setupKeybind('bind-toggleAutoSpin', 'toggleAutoSpin');
           setupKeybind('bind-toggleZoom', 'toggleZoom');
+
+          // ==================== BUILD UPGRADER INIT ====================
+          let currentBuildCode = '';
+          const attrEditor = document.getElementById('attr-editor');
+          const buildGrid = document.getElementById('build-grid');
+          const pointsCounter = document.getElementById('points-counter');
+          const buildCodeDisplay = document.getElementById('build-code');
+          const spawnNameInput = document.getElementById('spawn-name-input');
+          const heartBtn = document.getElementById('heart-btn');
+          
+          // Load saved username
+          const savedUsername = localStorage.getItem(UPGRADER.STORAGE_KEYS.USERNAME) || '';
+          if (spawnNameInput) spawnNameInput.value = savedUsername;
+          
+          // Update saved names heart
+          function updateHeartBtn() {
+              if (!heartBtn || !spawnNameInput) return;
+              const savedNames = getStorageJSON(UPGRADER.STORAGE_KEYS.SAVED_NAMES);
+              const name = spawnNameInput.value.trim();
+              heartBtn.classList.toggle('active', savedNames.includes(name));
+          }
+          
+          if (spawnNameInput) {
+              spawnNameInput.addEventListener('input', () => {
+                  localStorage.setItem(UPGRADER.STORAGE_KEYS.USERNAME, spawnNameInput.value);
+                  updateHeartBtn();
+              });
+          }
+          
+          if (heartBtn) {
+              heartBtn.addEventListener('click', () => {
+                  const name = spawnNameInput?.value?.trim();
+                  if (!name) return;
+                  const savedNames = getStorageJSON(UPGRADER.STORAGE_KEYS.SAVED_NAMES);
+                  const idx = savedNames.indexOf(name);
+                  if (idx === -1) savedNames.push(name);
+                  else savedNames.splice(idx, 1);
+                  setStorageJSON(UPGRADER.STORAGE_KEYS.SAVED_NAMES, savedNames);
+                  updateHeartBtn();
+              });
+          }
+          updateHeartBtn();
+          
+          function updateAttrDisplay() {
+              const { counts, total } = countAllocations(currentBuildCode);
+              const remaining = UPGRADER.MAX_POINTS - total;
+              if (pointsCounter) pointsCounter.textContent = 'Points: ' + (remaining >= 0 ? remaining : 'Modified for Smashers');
+              if (buildCodeDisplay) buildCodeDisplay.textContent = 'Code: ' + currentBuildCode;
+              
+              UPGRADER.ATTRIBUTES.forEach((attr, idx) => {
+                  const squares = document.querySelectorAll('.attr-row-' + idx + ' .attr-square');
+                  squares.forEach((sq, i) => {
+                      if (i < counts[idx]) {
+                          sq.classList.add('filled');
+                          sq.style.backgroundColor = attr.color;
+                      } else {
+                          sq.classList.remove('filled');
+                          sq.style.backgroundColor = 'rgba(80,80,80,0.5)';
+                      }
+                  });
+              });
+          }
+          
+          // Create attribute editor
+          if (attrEditor) {
+              UPGRADER.ATTRIBUTES.forEach((attr, idx) => {
+                  const row = document.createElement('div');
+                  row.className = 'attr-row attr-row-' + idx;
+                  
+                  const label = document.createElement('div');
+                  label.className = 'attr-label';
+                  label.textContent = attr.name;
+                  row.appendChild(label);
+                  
+                  const squares = document.createElement('div');
+                  squares.className = 'attr-squares';
+                  for (let i = 0; i < attr.maxLevel; i++) {
+                      const sq = document.createElement('div');
+                      sq.className = 'attr-square';
+                      squares.appendChild(sq);
+                  }
+                  row.appendChild(squares);
+                  
+                  const btns = document.createElement('div');
+                  btns.className = 'attr-btns';
+                  
+                  const minusBtn = document.createElement('button');
+                  minusBtn.className = 'attr-btn minus';
+                  minusBtn.textContent = '-';
+                  minusBtn.addEventListener('click', () => {
+                      const pos = currentBuildCode.lastIndexOf(String(idx + 1));
+                      if (pos !== -1) {
+                          currentBuildCode = currentBuildCode.slice(0, pos) + currentBuildCode.slice(pos + 1);
+                          updateAttrDisplay();
+                      }
+                  });
+                  btns.appendChild(minusBtn);
+                  
+                  const plusBtn = document.createElement('button');
+                  plusBtn.className = 'attr-btn plus';
+                  plusBtn.textContent = '+';
+                  plusBtn.addEventListener('click', () => {
+                      const { counts } = countAllocations(currentBuildCode);
+                      if (counts[idx] < attr.maxLevel) {
+                          currentBuildCode += (idx + 1);
+                          updateAttrDisplay();
+                      }
+                  });
+                  btns.appendChild(plusBtn);
+                  
+                  row.appendChild(btns);
+                  attrEditor.appendChild(row);
+              });
+          }
+          
+          // Render builds
+          function renderBuilds() {
+              if (!buildGrid) return;
+              buildGrid.innerHTML = '';
+              
+              let savedBuilds = getStorageJSON(UPGRADER.STORAGE_KEYS.SAVED_BUILDS);
+              if (savedBuilds.length === 0) {
+                  savedBuilds = [...UPGRADER.DEFAULT_BUILDS];
+                  setStorageJSON(UPGRADER.STORAGE_KEYS.SAVED_BUILDS, savedBuilds);
+              }
+              
+              savedBuilds.forEach((build, idx) => {
+                  const btn = document.createElement('div');
+                  btn.className = 'build-btn';
+                  btn.style.borderLeftColor = build.color || '#fff';
+                  btn.style.borderLeftWidth = '3px';
+                  btn.innerHTML = '<span class="build-name">' + build.name + '</span><span class="build-actions"><span class="build-action" data-action="delete">✕</span></span>';
+                  
+                  btn.querySelector('.build-name').addEventListener('click', () => {
+                      spawnWithBuild(build.cmd);
+                  });
+                  
+                  btn.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+                      e.stopPropagation();
+                      savedBuilds.splice(idx, 1);
+                      setStorageJSON(UPGRADER.STORAGE_KEYS.SAVED_BUILDS, savedBuilds);
+                      renderBuilds();
+                  });
+                  
+                  buildGrid.appendChild(btn);
+              });
+              
+              // Add build button
+              const addBtn = document.createElement('div');
+              addBtn.className = 'build-btn add-build-btn';
+              addBtn.innerHTML = '<span class="build-name">+ Add Current Build</span>';
+              addBtn.addEventListener('click', () => {
+                  const name = prompt('Build name:');
+                  if (!name || !currentBuildCode) return;
+                  const savedBuilds = getStorageJSON(UPGRADER.STORAGE_KEYS.SAVED_BUILDS);
+                  savedBuilds.push({ name, cmd: currentBuildCode, color: '#' + Math.floor(Math.random()*16777215).toString(16) });
+                  setStorageJSON(UPGRADER.STORAGE_KEYS.SAVED_BUILDS, savedBuilds);
+                  renderBuilds();
+              });
+              buildGrid.appendChild(addBtn);
+          }
+          renderBuilds();
+          updateAttrDisplay();
+          console.log('[Udink Mod] Build Upgrader initialized');
 
           window.addEventListener('keydown', (e) => {
               if (e.target.tagName === 'INPUT') return;
@@ -2599,10 +3360,10 @@
           
           console.log('[Udink Mod] Script fully loaded! 🎮');
           console.log('╔═══════════════════════════════════════╗');
-          console.log('║       UDINK MOD v3.1.0 LOADED!        ║');
+          console.log('║       UDINK MOD v3.3.1 LOADED!        ║');
           console.log('║    Press V to open the menu           ║');
           console.log('║    Threat Mode: Prioritize enemies!  ║');
-          console.log('║    © 2024 Udink - All Rights Reserved ║');
+          console.log('║    © 2025 Udink - All Rights Reserved ║');
           console.log('╚═══════════════════════════════════════╝');
       })();
   })();
