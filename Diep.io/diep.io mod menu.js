@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Udink Mod - Diep.io Ultimate Cheat
 // @description  Ultimate Diep.io Mod by Udink - Aimbot, ESP, Auto Fire, Auto Spin, Zoom Hack & More!
-// @version      3.3.7
+// @version      3.3.9
 // @author       Udink
 // @license      MIT
 // @match        https://diep.io/*
@@ -2717,7 +2717,7 @@ Object.freeze = new Proxy(Object.freeze, {
                       <div class="header">ℹ️ About</div>
                       <div class="card">
                           <div class="row"><span class="label">Mod Name</span><span class="info-badge badge-blue">⚡ Udink Mod</span></div>
-                          <div class="row"><span class="label">Version</span><span class="info-badge badge-green">v3.3.7</span></div>
+                          <div class="row"><span class="label">Version</span><span class="info-badge badge-green">v3.3.9</span></div>
                           <div class="row"><span class="label">Developer</span><span class="info-badge badge-orange">Udink</span></div>
                           <div class="row"><span class="label">Status</span><span class="info-badge badge-green">✓ Active</span></div>
                       </div>
@@ -3296,12 +3296,14 @@ Object.freeze = new Proxy(Object.freeze, {
                       } else if (isPentagon) {
                           col = CONFIG.cPenta;
                           shouldDrawESP = true;
-                          // Line ke pentagon hanya jika priority = farm
-                          shouldDrawLine = CONFIG.espLines && CONFIG.priority === 'farm';
+                          // Line ke pentagon jika priority = farm atau all
+                          shouldDrawLine = CONFIG.espLines && (CONFIG.priority === 'farm' || CONFIG.priority === 'all');
                       } else if (isSquare || isTriangle) {
-                          // Farm shapes - tampilkan ESP tapi lebih subtle
+                          // Farm shapes - tampilkan ESP
                           col = CONFIG.cFarm;
                           shouldDrawESP = true;
+                          // Line ke farm jika priority = farm
+                          shouldDrawLine = CONFIG.espLines && CONFIG.priority === 'farm';
                       }
 
                       // Draw circle/box around entity
@@ -3383,9 +3385,14 @@ Object.freeze = new Proxy(Object.freeze, {
                       if (!isEnemy && !isDrone) continue;
                       score = arenaDist;
                   } else if (CONFIG.priority === 'farm') {
+                      // FARM MODE - Target farm shapes only
                       if (isEnemy || isDrone || isCrasher) continue;
-                      if (isPentagon) score -= 5000;
-                      else if (isTriangle) score -= 2000;
+                      if (!isFarmShape) continue; // Skip non-farm entities
+                      // Prioritas: Pentagon > Triangle > Square
+                      if (isPentagon) score = arenaDist - 10000;
+                      else if (isTriangle) score = arenaDist - 5000;
+                      else if (isSquare) score = arenaDist;
+                      else continue;
                   } else {
                       // Distance mode - pure nearest
                       score = dist;
@@ -3444,17 +3451,30 @@ Object.freeze = new Proxy(Object.freeze, {
                   // Konversi ke screen coordinates untuk mouse input
                   const screenPos = scaling.canvasToScreen(t);
                   const screenCenter = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-                  const angle = Math.atan2(screenPos.y - screenCenter.y, screenPos.x - screenCenter.x);
                   
-                  // SMOOTH AIM - tidak langsung snap ke target
-                  let aimDistance = 300;
+                  // Calculate aim position - aim directly at target, not fixed distance
+                  let aimX, aimY;
+                  
                   if (CONFIG.smoothAim) {
+                      // SMOOTH AIM - interpolate from current aim to target
                       const smoothness = Number(CONFIG.smoothness) || 0.3;
-                      aimDistance = 100 + Math.random() * 200 * smoothness;
+                      // Get current aim position (use saved or center as fallback)
+                      if (!window._udinkLastAim) {
+                          window._udinkLastAim = { x: screenCenter.x, y: screenCenter.y };
+                      }
+                      // Lerp towards target position
+                      const lerpFactor = 0.1 + smoothness * 0.4; // 0.1 to 0.5 based on smoothness
+                      aimX = window._udinkLastAim.x + (screenPos.x - window._udinkLastAim.x) * lerpFactor;
+                      aimY = window._udinkLastAim.y + (screenPos.y - window._udinkLastAim.y) * lerpFactor;
+                      // Save for next frame
+                      window._udinkLastAim.x = aimX;
+                      window._udinkLastAim.y = aimY;
+                  } else {
+                      // Instant aim - snap directly to target
+                      aimX = screenPos.x;
+                      aimY = screenPos.y;
                   }
                   
-                  const aimX = screenCenter.x + Math.cos(angle) * aimDistance;
-                  const aimY = screenCenter.y + Math.sin(angle) * aimDistance;
                   input.mouse(aimX, aimY);
                   
                   // Triggerbot - auto shoot when aiming at enemy
